@@ -1,320 +1,396 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lumina Dates • For You ❤️</title>
+  <title>Our Special Night ❤️</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <!-- Leaflet CSS & JS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&display=swap');
-    body { font-family: 'Inter', sans-serif; }
-    .heading { font-family: 'Playfair Display', serif; }
-    .card { transition: all 0.4s cubic-bezier(0.34,1.56,0.64,1); }
-    #map { height: 200px; }
+    body { font-family: 'Inter', system-ui; }
+    h1, h2 { font-family: 'Playfair Display', serif; }
+    .card { transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    #map { height: 180px; border-radius: 1.5rem; }
+    .dark #map { filter: brightness(0.85); }
   </style>
 </head>
-<body class="bg-zinc-950 text-white min-h-screen pb-20">
+<body class="bg-gradient-to-br from-rose-50 via-fuchsia-50 to-amber-50 dark:bg-zinc-950 dark:text-white min-h-screen">
 
-  <!-- Bottom Navigation -->
-  <div class="fixed bottom-0 left-0 right-0 bg-zinc-900 border-t border-zinc-800 z-50">
-    <div class="max-w-md mx-auto flex justify-around py-3">
-      <button onclick="switchScreen(0)" class="nav-btn flex flex-col items-center text-rose-400">
-        <i class="fa-solid fa-heart text-2xl"></i>
-        <span class="text-xs mt-1">Plan</span>
-      </button>
-      <button onclick="switchScreen(1)" class="nav-btn flex flex-col items-center text-zinc-400 hover:text-white">
-        <i class="fa-solid fa-map-marker-alt text-2xl"></i>
-        <span class="text-xs mt-1">Discover</span>
-      </button>
-      <button onclick="switchScreen(2)" class="nav-btn flex flex-col items-center text-zinc-400 hover:text-white">
-        <i class="fa-solid fa-calendar text-2xl"></i>
-        <span class="text-xs mt-1">Dates</span>
-      </button>
+  <div class="max-w-md mx-auto bg-white dark:bg-zinc-900 min-h-screen shadow-2xl overflow-hidden">
+    <!-- Top Bar -->
+    <div class="flex justify-between items-center px-6 pt-6">
+      <div class="flex items-center gap-2">
+        <i class="fa-solid fa-heart text-rose-500"></i>
+        <span class="font-medium">For You</span>
+      </div>
+      <div class="flex gap-3">
+        <button onclick="toggleDarkMode()" class="w-9 h-9 flex items-center justify-center rounded-2xl hover:bg-gray-100 dark:hover:bg-zinc-800">
+          <i id="theme-icon" class="fa-solid fa-moon"></i>
+        </button>
+        <button onclick="openShareModal()" class="text-rose-500 hover:opacity-75">
+          <i class="fa-solid fa-share-nodes"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Header -->
+    <div class="px-8 pt-6 pb-8 bg-gradient-to-br from-rose-500 to-purple-600 text-white">
+      <h1 class="text-4xl font-bold text-center">Our Perfect Night ❤️</h1>
+      <p class="text-center mt-2 opacity-90 text-lg">Thoughtfully planned for you</p>
+    </div>
+
+    <div class="p-6 space-y-10">
+      <!-- Real-time Map -->
+      <div class="bg-white dark:bg-zinc-800 rounded-3xl p-5 border dark:border-zinc-700">
+        <div class="flex items-center gap-2 mb-4">
+          <i class="fa-solid fa-map-marker-alt text-emerald-500"></i>
+          <span class="font-medium">Nearby Romantic Spots</span>
+        </div>
+        <div id="map"></div>
+        <div id="location-info" class="mt-3 text-sm text-emerald-600 dark:text-emerald-400"></div>
+      </div>
+
+      <!-- Calendar Integration -->
+      <div>
+        <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Pick our date</label>
+        <input type="date" id="date-picker" 
+               class="w-full p-4 rounded-3xl border dark:bg-zinc-800 dark:border-zinc-700 text-center text-lg">
+      </div>
+
+      <!-- Mood & Psychology -->
+      <div>
+        <div class="flex justify-between mb-4">
+          <p class="font-medium">How are we feeling?</p>
+          <button onclick="showPsychology()" class="flex items-center gap-1.5 text-rose-500">
+            <i class="fa-solid fa-brain"></i> Tips
+          </button>
+        </div>
+        <div id="moods" class="grid grid-cols-4 gap-3"></div>
+      </div>
+
+      <!-- Suggestions -->
+      <div>
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-2xl font-semibold">Suggestions</h2>
+          <button onclick="surpriseMe()" class="flex items-center gap-2 text-pink-600 dark:text-pink-400 font-medium">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Surprise
+          </button>
+        </div>
+        <div id="grid" class="grid grid-cols-2 gap-4"></div>
+      </div>
+
+      <!-- Itinerary -->
+      <div id="itinerary-panel" class="hidden bg-gradient-to-br from-purple-50 to-pink-50 dark:from-zinc-800 dark:to-zinc-900 rounded-3xl p-6">
+        <h2 class="font-bold text-xl mb-6">Our Night Timeline</h2>
+        <div id="timeline" class="space-y-8"></div>
+
+        <button onclick="finishDate()" 
+                class="mt-10 w-full py-6 bg-gradient-to-r from-rose-500 to-purple-600 text-white rounded-3xl font-semibold text-xl shadow-2xl">
+          Confirm &amp; Send to Love ❤️
+        </button>
+      </div>
     </div>
   </div>
 
   <!-- Share Modal -->
-  <div id="share-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end">
-    <div class="w-full max-w-md bg-zinc-900 rounded-t-3xl p-6 space-y-4">
-      <h2 class="text-2xl font-bold">Share Your Date Plan</h2>
-      
-      <!-- Shareable Link -->
-      <div class="bg-zinc-800 rounded-2xl p-4">
-        <p class="text-xs text-zinc-400 mb-2">SHAREABLE LINK</p>
-        <div class="flex gap-2">
-          <input id="share-link" type="text" readonly class="flex-1 bg-zinc-900 border border-zinc-700 rounded-xl p-3 text-sm truncate">
-          <button onclick="copyToClipboard()" class="px-4 py-3 bg-rose-600 hover:bg-rose-500 rounded-xl">
-            <i class="fa-solid fa-copy"></i>
-          </button>
-        </div>
-      </div>
-
-      <!-- Share Methods -->
-      <div class="grid grid-cols-3 gap-3">
-        <button onclick="shareVia('whatsapp')" class="flex flex-col items-center gap-2 p-4 bg-zinc-800 rounded-2xl hover:bg-zinc-700">
-          <i class="fa-brands fa-whatsapp text-2xl text-green-500"></i>
-          <span class="text-xs">WhatsApp</span>
-        </button>
-        <button onclick="shareVia('sms')" class="flex flex-col items-center gap-2 p-4 bg-zinc-800 rounded-2xl hover:bg-zinc-700">
-          <i class="fa-solid fa-message text-2xl text-blue-500"></i>
-          <span class="text-xs">SMS</span>
-        </button>
-        <button onclick="shareVia('copy')" class="flex flex-col items-center gap-2 p-4 bg-zinc-800 rounded-2xl hover:bg-zinc-700">
-          <i class="fa-solid fa-link text-2xl text-purple-500"></i>
-          <span class="text-xs">Copy Link</span>
-        </button>
-      </div>
-
-      <!-- Plan Summary -->
-      <div class="bg-zinc-800 rounded-2xl p-4">
-        <p class="text-xs text-zinc-400 mb-3">PLAN PREVIEW</p>
-        <div id="plan-preview" class="space-y-2"></div>
-      </div>
-
-      <button onclick="closeShareModal()" class="w-full py-3 bg-zinc-800 hover:bg-zinc-700 rounded-2xl">Cancel</button>
-    </div>
-  </div>
-
-  <!-- Screen 1: Main Suggestions (Default) -->
-  <div id="screen-0" class="screen max-w-md mx-auto">
-    <div class="bg-gradient-to-br from-rose-600 to-purple-700 p-8">
-      <div class="flex justify-between">
-        <div>
-          <p class="text-rose-200 text-sm">Good evening, Alex ❤️</p>
-          <h1 class="heading text-4xl font-bold">What are we feeling tonight?</h1>
-        </div>
-        <button onclick="toggleDarkMode()" class="text-3xl">🌙</button>
-      </div>
-    </div>
-
-    <div class="p-6 space-y-8">
-      <!-- Map -->
-      <div class="rounded-3xl overflow-hidden border border-zinc-800">
-        <div id="map" class="w-full"></div>
-      </div>
-
-      <!-- Date Picker -->
-      <div class="flex gap-4 items-end">
-        <div class="flex-1">
-          <label class="text-xs text-zinc-400 block mb-2">DATE</label>
-          <input id="date-picker" type="date" class="w-full bg-zinc-900 border border-zinc-700 rounded-2xl p-4 text-white">
-        </div>
-        <button onclick="openShareModal()" class="px-6 py-4 bg-rose-600 hover:bg-rose-500 rounded-2xl font-semibold flex items-center gap-2">
-          <i class="fa-solid fa-share"></i> Share
-        </button>
-      </div>
-
-      <!-- Suggestions Grid -->
+  <div id="share-modal" class="hidden fixed inset-0 bg-black/70 flex items-end z-50 p-4">
+    <div class="w-full max-w-md bg-white dark:bg-zinc-900 rounded-t-3xl p-8 space-y-6 mx-auto">
       <div>
-        <div class="flex justify-between mb-5">
-          <h2 class="text-2xl font-semibold">Handpicked for you two</h2>
-          <button onclick="surpriseMe()" class="text-rose-400 flex items-center gap-2">
-            <i class="fa-solid fa-sparkles"></i> Surprise
-          </button>
-        </div>
-        <div id="suggestions-grid" class="grid grid-cols-2 gap-4"></div>
+        <h2 class="text-2xl font-bold mb-2">Share Your Plan</h2>
+        <p class="text-gray-600 dark:text-gray-400">Send this link to your partner</p>
       </div>
+
+      <!-- Shareable Link -->
+      <div class="bg-gray-100 dark:bg-zinc-800 rounded-2xl p-4">
+        <input type="text" id="share-link" readonly 
+               class="w-full bg-transparent text-sm font-mono text-center dark:text-white outline-none">
+      </div>
+
+      <!-- Share Buttons -->
+      <div class="grid grid-cols-3 gap-3">
+        <button onclick="copyLink()" class="flex flex-col items-center gap-2 p-4 bg-blue-50 dark:bg-zinc-800 rounded-2xl hover:bg-blue-100">
+          <i class="fa-solid fa-copy text-2xl text-blue-600"></i>
+          <span class="text-xs font-medium">Copy</span>
+        </button>
+        <button onclick="shareVia('whatsapp')" class="flex flex-col items-center gap-2 p-4 bg-green-50 dark:bg-zinc-800 rounded-2xl hover:bg-green-100">
+          <i class="fa-brands fa-whatsapp text-2xl text-green-600"></i>
+          <span class="text-xs font-medium">WhatsApp</span>
+        </button>
+        <button onclick="shareVia('email')" class="flex flex-col items-center gap-2 p-4 bg-purple-50 dark:bg-zinc-800 rounded-2xl hover:bg-purple-100">
+          <i class="fa-solid fa-envelope text-2xl text-purple-600"></i>
+          <span class="text-xs font-medium">Email</span>
+        </button>
+      </div>
+
+      <!-- Plan Preview -->
+      <div id="preview-section" class="hidden bg-gradient-to-br from-rose-50 to-pink-50 dark:from-zinc-800 dark:to-zinc-700 rounded-2xl p-4">
+        <p class="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-3">PLAN INCLUDES:</p>
+        <div id="preview-items" class="space-y-2 text-sm"></div>
+      </div>
+
+      <button onclick="closeShareModal()" class="w-full py-3 bg-gray-200 dark:bg-zinc-800 rounded-2xl font-medium hover:bg-gray-300">
+        Close
+      </button>
     </div>
   </div>
 
-  <!-- Screen 2: Discover -->
-  <div id="screen-1" class="screen hidden max-w-md mx-auto p-6">
-    <h1 class="text-3xl font-bold mb-6">Discover Nearby</h1>
-    <div id="discover-list" class="space-y-4"></div>
-  </div>
-
-  <!-- Screen 3: My Dates -->
-  <div id="screen-2" class="screen hidden max-w-md mx-auto p-6">
-    <h1 class="text-3xl font-bold mb-6">Upcoming Dates</h1>
-    <div class="bg-zinc-900 rounded-3xl p-6 text-center">
-      <p class="text-rose-400 text-6xl mb-4">❤️</p>
-      <p class="text-xl">Tonight at 7:30 PM</p>
-      <p class="text-zinc-400">Rooftop Pizza + Stargazing</p>
+  <!-- Psychology Modal -->
+  <div id="psych-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-6">
+    <div class="bg-white dark:bg-zinc-900 rounded-3xl max-w-md w-full p-8">
+      <h3 class="text-2xl font-semibold mb-6">Couple Psychology Insights</h3>
+      <div id="psych-content" class="space-y-6 text-sm leading-relaxed"></div>
+      <button onclick="hidePsychology()" class="mt-8 w-full py-4 border dark:border-zinc-700 rounded-3xl">Got it, thank you</button>
     </div>
   </div>
 
   <script>
-    // Sample data
+    let map, marker;
+    let selectedItems = [];
+    let currentPlanId = null;
     let suggestions = [
-      {id:1, title:"Sushi River Date", emoji:"🍣", desc:"Our favorite spot", time:"7:00 PM"},
-      {id:2, title:"Rooftop Pizza", emoji:"🍕", desc:"City lights view", time:"7:30 PM"},
-      {id:3, title:"Stargazing", emoji:"🌌", desc:"After dinner walk", time:"9:00 PM"},
+      {id:1, title:"Sushi by the River", emoji:"🍣", desc:"Riverside romance", time:"7:00 PM", rating:5},
+      {id:2, title:"Rooftop Pizza", emoji:"🍕", desc:"City lights", time:"7:30 PM", rating:5},
+      {id:3, title:"Stargazing Walk", emoji:"🌌", desc:"Park after dinner", time:"9:00 PM", rating:5},
     ];
 
-    let currentScreen = 0;
-    let currentPlan = [];
-
-    // Generate unique shareable ID
-    function generateShareId() {
-      return Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
+    // Generate Unique Plan ID
+    function generatePlanId() {
+      return 'plan_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
     }
 
-    // Create shareable plan object
-    function createShareablePlan() {
+    // Save Plan to LocalStorage
+    function savePlan() {
       const date = document.getElementById('date-picker').value;
-      const planId = generateShareId();
-      
       const plan = {
-        id: planId,
+        id: currentPlanId || generatePlanId(),
         date: date,
-        items: currentPlan,
+        items: selectedItems,
         createdAt: new Date().toISOString(),
-        shareableUrl: `${window.location.origin}?plan=${planId}`
+        url: `${window.location.origin}${window.location.pathname}?plan=${currentPlanId || generatePlanId()}`
       };
-
-      // Store in localStorage (in production, use a backend database)
-      localStorage.setItem(`plan_${planId}`, JSON.stringify(plan));
-      
+      currentPlanId = plan.id;
+      localStorage.setItem(plan.id, JSON.stringify(plan));
       return plan;
     }
 
-    // Get shareable link
-    function getShareLink() {
-      const plan = createShareablePlan();
-      return plan.shareableUrl;
-    }
-
-    // Open share modal
-    function openShareModal() {
-      const plan = createShareablePlan();
-      document.getElementById('share-link').value = plan.shareableUrl;
-      
-      // Update plan preview
-      const preview = document.getElementById('plan-preview');
-      preview.innerHTML = currentPlan.map((id, idx) => {
-        const item = suggestions.find(s => s.id === id);
-        return `
-          <div class="flex gap-2 items-center text-sm">
-            <span class="text-2xl">${item.emoji}</span>
-            <div>
-              <p class="font-medium">${item.title}</p>
-              <p class="text-zinc-400 text-xs">${item.time}</p>
-            </div>
-          </div>
-        `;
-      }).join('');
-      
-      document.getElementById('share-modal').classList.remove('hidden');
-    }
-
-    // Close share modal
-    function closeShareModal() {
-      document.getElementById('share-modal').classList.add('hidden');
-    }
-
-    // Copy to clipboard
-    function copyToClipboard() {
-      const link = document.getElementById('share-link').value;
-      navigator.clipboard.writeText(link).then(() => {
-        alert('Link copied to clipboard! 📋');
-      });
-    }
-
-    // Share via different methods
-    function shareVia(method) {
-      const link = document.getElementById('share-link').value;
-      const date = document.getElementById('date-picker').value;
-      const message = `Check out our romantic date plan for ${date}! 💕`;
-
-      if (method === 'whatsapp') {
-        window.open(`https://wa.me/?text=${encodeURIComponent(message + '\n' + link)}`);
-      } else if (method === 'sms') {
-        window.location.href = `sms:?body=${encodeURIComponent(message + '\n' + link)}`;
-      } else if (method === 'copy') {
-        copyToClipboard();
-      }
-    }
-
-    // Check if viewing shared plan
-    function loadSharedPlan() {
+    // Load Plan from URL or LocalStorage
+    function loadPlan() {
       const params = new URLSearchParams(window.location.search);
       const planId = params.get('plan');
-      
       if (planId) {
-        const storedPlan = localStorage.getItem(`plan_${planId}`);
+        const storedPlan = localStorage.getItem(planId);
         if (storedPlan) {
           const plan = JSON.parse(storedPlan);
-          currentPlan = plan.items;
+          selectedItems = plan.items;
           document.getElementById('date-picker').value = plan.date;
-          renderSuggestions();
-          return true;
+          currentPlanId = plan.id;
+          renderGrid();
+          renderTimeline();
         }
       }
-      return false;
-    }
-
-    function switchScreen(n) {
-      document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-      document.getElementById(`screen-${n}`).classList.remove('hidden');
-      currentScreen = n;
-    }
-
-    function createSuggestionCard(item) {
-      const isSelected = currentPlan.includes(item.id);
-      const div = document.createElement('div');
-      div.className = `card bg-zinc-900 rounded-3xl overflow-hidden cursor-pointer active:scale-95 ${isSelected ? 'ring-2 ring-rose-500' : ''}`;
-      div.innerHTML = `
-        <div class="h-40 flex items-center justify-center bg-gradient-to-br from-purple-900 to-rose-900 text-7xl">${item.emoji}</div>
-        <div class="p-5">
-          <h3 class="font-semibold text-lg">${item.title}</h3>
-          <p class="text-zinc-400 text-sm">${item.desc} • ${item.time}</p>
-          <button onclick="addToPlan(${item.id}); event.stopImmediatePropagation()" 
-                  class="mt-4 w-full ${isSelected ? 'bg-rose-900 text-rose-200' : 'bg-rose-600 hover:bg-rose-500'} py-3 rounded-2xl text-sm font-medium">
-                  ${isSelected ? '✓ Added' : 'Add to Plan'}
-          </button>
-        </div>
-      `;
-      return div;
-    }
-
-    function renderSuggestions() {
-      const container = document.getElementById('suggestions-grid');
-      container.innerHTML = '';
-      suggestions.forEach(item => {
-        container.appendChild(createSuggestionCard(item));
-      });
-    }
-
-    function addToPlan(id) {
-      if (!currentPlan.includes(id)) {
-        currentPlan.push(id);
-        confetti({ particleCount: 100, spread: 70 });
-      } else {
-        currentPlan = currentPlan.filter(item => item !== id);
-      }
-      renderSuggestions();
-    }
-
-    function surpriseMe() {
-      confetti({ particleCount: 150 });
-      alert("AI found a new perfect idea for you two ✨");
     }
 
     function toggleDarkMode() {
-      alert("Theme switched (in real app this would toggle light/dark)");
+      document.documentElement.classList.toggle('dark');
+      const icon = document.getElementById('theme-icon');
+      icon.classList.toggle('fa-moon');
+      icon.classList.toggle('fa-sun');
     }
 
     // Leaflet Map
     function initMap() {
-      const map = L.map('map').setView([40.71, -74.00], 15);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-      L.marker([40.71, -74.00]).addTo(map).bindPopup("Riverfront Sushi").openPopup();
+      map = L.map('map').setView([40.7128, -74.0060], 14);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+      }).addTo(map);
+      
+      const spots = [
+        [40.7128, -74.0060, "Riverfront Sushi"],
+        [40.718, -74.002, "Rooftop Garden"]
+      ];
+      spots.forEach(([lat, lng, name]) => {
+        L.marker([lat, lng]).addTo(map).bindPopup(name);
+      });
+      document.getElementById('location-info').innerHTML = '📍 Downtown • 3 romantic spots nearby';
     }
 
-    // Init
+    function getLocation() {
+      document.getElementById('location-info').innerHTML = '✅ Live location updated • ' + new Date().toLocaleTimeString();
+    }
+
+    function renderMoods() {
+      const container = document.getElementById('moods');
+      const moods = [
+        {emoji:"❤️", label:"Romantic"},
+        {emoji:"😄", label:"Playful"},
+        {emoji:"🌿", label:"Chill"},
+        {emoji:"🏔️", label:"Adventure"}
+      ];
+      container.innerHTML = moods.map(m => `
+        <div onclick="this.classList.toggle('ring-2');this.classList.toggle('ring-rose-400')" 
+             class="text-center p-4 bg-white dark:bg-zinc-800 rounded-3xl cursor-pointer hover:shadow">
+          <div class="text-4xl mb-2">${m.emoji}</div>
+          <div class="text-xs">${m.label}</div>
+        </div>
+      `).join('');
+    }
+
+    function createCard(item) {
+      const isSelected = selectedItems.some(s => s.id === item.id);
+      const card = document.createElement('div');
+      card.className = `card bg-white dark:bg-zinc-800 rounded-3xl overflow-hidden shadow-xl cursor-pointer ${isSelected ? 'ring-2 ring-rose-500' : ''}`;
+      card.innerHTML = `
+        <div class="h-40 bg-gradient-to-br from-pink-100 to-purple-100 dark:from-zinc-700 dark:to-zinc-600 flex items-center justify-center text-7xl">${item.emoji}</div>
+        <div class="p-5">
+          <h3 class="font-semibold text-xl">${item.title}</h3>
+          <p class="text-gray-600 dark:text-gray-400">${item.desc}</p>
+          <button onclick="toggleSelect(${item.id});event.stopImmediatePropagation()" 
+                  class="mt-4 w-full py-3 rounded-2xl text-sm font-medium ${isSelected ? 'bg-rose-500 text-white' : 'border border-pink-400 hover:bg-pink-50 dark:hover:bg-zinc-700'}">
+                  ${isSelected ? '✓ Added' : 'Add to plan'}
+          </button>
+        </div>
+      `;
+      card.onclick = () => toggleSelect(item.id);
+      return card;
+    }
+
+    function renderGrid() {
+      const container = document.getElementById('grid');
+      container.innerHTML = '';
+      suggestions.forEach(item => container.appendChild(createCard(item)));
+    }
+
+    function toggleSelect(id) {
+      const item = suggestions.find(s => s.id === id);
+      if (selectedItems.find(s => s.id === id)) {
+        selectedItems = selectedItems.filter(s => s.id !== id);
+      } else {
+        selectedItems.push(item);
+        confetti({ particleCount: 70 });
+      }
+      renderGrid();
+      renderTimeline();
+      savePlan();
+    }
+
+    function renderTimeline() {
+      const panel = document.getElementById('itinerary-panel');
+      const container = document.getElementById('timeline');
+      if (selectedItems.length === 0) {
+        panel.classList.add('hidden');
+        return;
+      }
+      panel.classList.remove('hidden');
+      container.innerHTML = selectedItems.map(item => `
+        <div class="flex gap-4">
+          <span class="text-4xl">${item.emoji}</span>
+          <div>
+            <div class="font-semibold">${item.title}</div>
+            <div class="text-sm text-gray-500 dark:text-gray-400">${item.desc} • ${item.time}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function surpriseMe() {
+      const newIdeas = [
+        {id: Date.now(), title:"Secret Garden Picnic", emoji:"🧺", desc:"Private & magical", time:"8:30 PM", rating:5},
+        {id: Date.now() + 1, title:"Wine Tasting", emoji:"🍷", desc:"Cozy vineyard", time:"8:00 PM", rating:5}
+      ];
+      suggestions = suggestions.concat(newIdeas);
+      renderGrid();
+      confetti({ particleCount: 150 });
+    }
+
+    function openShareModal() {
+      const plan = savePlan();
+      const shareUrl = `${window.location.origin}${window.location.pathname}?plan=${plan.id}`;
+      document.getElementById('share-link').value = shareUrl;
+
+      // Update preview
+      const previewSection = document.getElementById('preview-section');
+      const previewItems = document.getElementById('preview-items');
+      if (selectedItems.length > 0) {
+        previewSection.classList.remove('hidden');
+        previewItems.innerHTML = selectedItems.map(item => `
+          <div class="flex items-center gap-2">
+            <span class="text-lg">${item.emoji}</span>
+            <span>${item.title}</span>
+          </div>
+        `).join('');
+      } else {
+        previewSection.classList.add('hidden');
+      }
+
+      document.getElementById('share-modal').classList.remove('hidden');
+    }
+
+    function closeShareModal() {
+      document.getElementById('share-modal').classList.add('hidden');
+    }
+
+    function copyLink() {
+      const link = document.getElementById('share-link').value;
+      navigator.clipboard.writeText(link).then(() => {
+        alert('✅ Link copied to clipboard!');
+      });
+    }
+
+    function shareVia(method) {
+      const link = document.getElementById('share-link').value;
+      const date = document.getElementById('date-picker').value || 'soon';
+      const text = `💕 I planned a special date for us! Check out our romantic itinerary:\n${link}`;
+
+      if (method === 'whatsapp') {
+        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
+      } else if (method === 'email') {
+        window.location.href = `mailto:?subject=Our Special Date Plan ❤️&body=${encodeURIComponent(text)}`;
+      }
+    }
+
+    function showPsychology() {
+      const content = document.getElementById('psych-content');
+      content.innerHTML = `
+        <div class="space-y-5">
+          <div><strong>Novel Experiences:</strong> Trying new things together releases dopamine and strengthens your bond (Aron Study).</div>
+          <div><strong>Thoughtful Planning:</strong> Acts like this increase relationship satisfaction significantly.</div>
+          <div><strong>Quality Time:</strong> Shared anticipation is often as joyful as the date itself.</div>
+          <div><strong>Surprise Element:</strong> Variety and spontaneity keep relationships exciting and connected.</div>
+        </div>
+      `;
+      document.getElementById('psych-modal').classList.remove('hidden');
+    }
+
+    function hidePsychology() {
+      document.getElementById('psych-modal').classList.add('hidden');
+    }
+
+    function finishDate() {
+      confetti({ particleCount: 300, spread: 120 });
+      const date = document.getElementById('date-picker').value || "this evening";
+      setTimeout(() => {
+        alert(`❤️ Date confirmed for ${date}!\n\nYour partner can view the full plan via your shareable link.`);
+      }, 600);
+    }
+
+    // Initialize
     window.onload = () => {
-      loadSharedPlan();
-      renderSuggestions();
+      loadPlan();
+      renderMoods();
+      renderGrid();
       initMap();
+      getLocation();
+      
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
-      document.getElementById('date-picker').value = tomorrow.toISOString().split('T')[0];
-      
-      switchScreen(0);
+      if (!document.getElementById('date-picker').value) {
+        document.getElementById('date-picker').value = tomorrow.toISOString().split('T')[0];
+      }
     };
   </script>
 </body>
