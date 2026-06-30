@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lumina Dates • For You ❤️</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    .heading { font-family: 'Playfair Display', serif; }
+    .card { transition: all 0.4s cubic-bezier(0.34,1.56,0.64,1); }
+    #map { height: 200px; }
+  </style>
+</head>
+<body class="bg-zinc-950 text-white min-h-screen pb-20">
+
+  <!-- Bottom Navigation -->
+  <div class="fixed bottom-0 left-0 right-0 bg-zinc-900 border-t border-zinc-800 z-50">
+    <div class="max-w-md mx-auto flex justify-around py-3">
+      <button onclick="switchScreen(0)" class="nav-btn flex flex-col items-center text-rose-400">
+        <i class="fa-solid fa-heart text-2xl"></i>
+        <span class="text-xs mt-1">Plan</span>
+      </button>
+      <button onclick="switchScreen(1)" class="nav-btn flex flex-col items-center text-zinc-400 hover:text-white">
+        <i class="fa-solid fa-map-marker-alt text-2xl"></i>
+        <span class="text-xs mt-1">Discover</span>
+      </button>
+      <button onclick="switchScreen(2)" class="nav-btn flex flex-col items-center text-zinc-400 hover:text-white">
+        <i class="fa-solid fa-calendar text-2xl"></i>
+        <span class="text-xs mt-1">Dates</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Share Modal -->
+  <div id="share-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end">
+    <div class="w-full max-w-md bg-zinc-900 rounded-t-3xl p-6 space-y-4">
+      <h2 class="text-2xl font-bold">Share Your Date Plan</h2>
+      
+      <!-- Shareable Link -->
+      <div class="bg-zinc-800 rounded-2xl p-4">
+        <p class="text-xs text-zinc-400 mb-2">SHAREABLE LINK</p>
+        <div class="flex gap-2">
+          <input id="share-link" type="text" readonly class="flex-1 bg-zinc-900 border border-zinc-700 rounded-xl p-3 text-sm truncate">
+          <button onclick="copyToClipboard()" class="px-4 py-3 bg-rose-600 hover:bg-rose-500 rounded-xl">
+            <i class="fa-solid fa-copy"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Share Methods -->
+      <div class="grid grid-cols-3 gap-3">
+        <button onclick="shareVia('whatsapp')" class="flex flex-col items-center gap-2 p-4 bg-zinc-800 rounded-2xl hover:bg-zinc-700">
+          <i class="fa-brands fa-whatsapp text-2xl text-green-500"></i>
+          <span class="text-xs">WhatsApp</span>
+        </button>
+        <button onclick="shareVia('sms')" class="flex flex-col items-center gap-2 p-4 bg-zinc-800 rounded-2xl hover:bg-zinc-700">
+          <i class="fa-solid fa-message text-2xl text-blue-500"></i>
+          <span class="text-xs">SMS</span>
+        </button>
+        <button onclick="shareVia('copy')" class="flex flex-col items-center gap-2 p-4 bg-zinc-800 rounded-2xl hover:bg-zinc-700">
+          <i class="fa-solid fa-link text-2xl text-purple-500"></i>
+          <span class="text-xs">Copy Link</span>
+        </button>
+      </div>
+
+      <!-- Plan Summary -->
+      <div class="bg-zinc-800 rounded-2xl p-4">
+        <p class="text-xs text-zinc-400 mb-3">PLAN PREVIEW</p>
+        <div id="plan-preview" class="space-y-2"></div>
+      </div>
+
+      <button onclick="closeShareModal()" class="w-full py-3 bg-zinc-800 hover:bg-zinc-700 rounded-2xl">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Screen 1: Main Suggestions (Default) -->
+  <div id="screen-0" class="screen max-w-md mx-auto">
+    <div class="bg-gradient-to-br from-rose-600 to-purple-700 p-8">
+      <div class="flex justify-between">
+        <div>
+          <p class="text-rose-200 text-sm">Good evening, Alex ❤️</p>
+          <h1 class="heading text-4xl font-bold">What are we feeling tonight?</h1>
+        </div>
+        <button onclick="toggleDarkMode()" class="text-3xl">🌙</button>
+      </div>
+    </div>
+
+    <div class="p-6 space-y-8">
+      <!-- Map -->
+      <div class="rounded-3xl overflow-hidden border border-zinc-800">
+        <div id="map" class="w-full"></div>
+      </div>
+
+      <!-- Date Picker -->
+      <div class="flex gap-4 items-end">
+        <div class="flex-1">
+          <label class="text-xs text-zinc-400 block mb-2">DATE</label>
+          <input id="date-picker" type="date" class="w-full bg-zinc-900 border border-zinc-700 rounded-2xl p-4 text-white">
+        </div>
+        <button onclick="openShareModal()" class="px-6 py-4 bg-rose-600 hover:bg-rose-500 rounded-2xl font-semibold flex items-center gap-2">
+          <i class="fa-solid fa-share"></i> Share
+        </button>
+      </div>
+
+      <!-- Suggestions Grid -->
+      <div>
+        <div class="flex justify-between mb-5">
+          <h2 class="text-2xl font-semibold">Handpicked for you two</h2>
+          <button onclick="surpriseMe()" class="text-rose-400 flex items-center gap-2">
+            <i class="fa-solid fa-sparkles"></i> Surprise
+          </button>
+        </div>
+        <div id="suggestions-grid" class="grid grid-cols-2 gap-4"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 2: Discover -->
+  <div id="screen-1" class="screen hidden max-w-md mx-auto p-6">
+    <h1 class="text-3xl font-bold mb-6">Discover Nearby</h1>
+    <div id="discover-list" class="space-y-4"></div>
+  </div>
+
+  <!-- Screen 3: My Dates -->
+  <div id="screen-2" class="screen hidden max-w-md mx-auto p-6">
+    <h1 class="text-3xl font-bold mb-6">Upcoming Dates</h1>
+    <div class="bg-zinc-900 rounded-3xl p-6 text-center">
+      <p class="text-rose-400 text-6xl mb-4">❤️</p>
+      <p class="text-xl">Tonight at 7:30 PM</p>
+      <p class="text-zinc-400">Rooftop Pizza + Stargazing</p>
+    </div>
+  </div>
+
+  <script>
+    // Sample data
+    let suggestions = [
+      {id:1, title:"Sushi River Date", emoji:"🍣", desc:"Our favorite spot", time:"7:00 PM"},
+      {id:2, title:"Rooftop Pizza", emoji:"🍕", desc:"City lights view", time:"7:30 PM"},
+      {id:3, title:"Stargazing", emoji:"🌌", desc:"After dinner walk", time:"9:00 PM"},
+    ];
+
+    let currentScreen = 0;
+    let currentPlan = [];
+
+    // Generate unique shareable ID
+    function generateShareId() {
+      return Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
+    }
+
+    // Create shareable plan object
+    function createShareablePlan() {
+      const date = document.getElementById('date-picker').value;
+      const planId = generateShareId();
+      
+      const plan = {
+        id: planId,
+        date: date,
+        items: currentPlan,
+        createdAt: new Date().toISOString(),
+        shareableUrl: `${window.location.origin}?plan=${planId}`
+      };
+
+      // Store in localStorage (in production, use a backend database)
+      localStorage.setItem(`plan_${planId}`, JSON.stringify(plan));
+      
+      return plan;
+    }
+
+    // Get shareable link
+    function getShareLink() {
+      const plan = createShareablePlan();
+      return plan.shareableUrl;
+    }
+
+    // Open share modal
+    function openShareModal() {
+      const plan = createShareablePlan();
+      document.getElementById('share-link').value = plan.shareableUrl;
+      
+      // Update plan preview
+      const preview = document.getElementById('plan-preview');
+      preview.innerHTML = currentPlan.map((id, idx) => {
+        const item = suggestions.find(s => s.id === id);
+        return `
+          <div class="flex gap-2 items-center text-sm">
+            <span class="text-2xl">${item.emoji}</span>
+            <div>
+              <p class="font-medium">${item.title}</p>
+              <p class="text-zinc-400 text-xs">${item.time}</p>
+            </div>
+          </div>
+        `;
+      }).join('');
+      
+      document.getElementById('share-modal').classList.remove('hidden');
+    }
+
+    // Close share modal
+    function closeShareModal() {
+      document.getElementById('share-modal').classList.add('hidden');
+    }
+
+    // Copy to clipboard
+    function copyToClipboard() {
+      const link = document.getElementById('share-link').value;
+      navigator.clipboard.writeText(link).then(() => {
+        alert('Link copied to clipboard! 📋');
+      });
+    }
+
+    // Share via different methods
+    function shareVia(method) {
+      const link = document.getElementById('share-link').value;
+      const date = document.getElementById('date-picker').value;
+      const message = `Check out our romantic date plan for ${date}! 💕`;
+
+      if (method === 'whatsapp') {
+        window.open(`https://wa.me/?text=${encodeURIComponent(message + '\n' + link)}`);
+      } else if (method === 'sms') {
+        window.location.href = `sms:?body=${encodeURIComponent(message + '\n' + link)}`;
+      } else if (method === 'copy') {
+        copyToClipboard();
+      }
+    }
+
+    // Check if viewing shared plan
+    function loadSharedPlan() {
+      const params = new URLSearchParams(window.location.search);
+      const planId = params.get('plan');
+      
+      if (planId) {
+        const storedPlan = localStorage.getItem(`plan_${planId}`);
+        if (storedPlan) {
+          const plan = JSON.parse(storedPlan);
+          currentPlan = plan.items;
+          document.getElementById('date-picker').value = plan.date;
+          renderSuggestions();
+          return true;
+        }
+      }
+      return false;
+    }
+
+    function switchScreen(n) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+      document.getElementById(`screen-${n}`).classList.remove('hidden');
+      currentScreen = n;
+    }
+
+    function createSuggestionCard(item) {
+      const isSelected = currentPlan.includes(item.id);
+      const div = document.createElement('div');
+      div.className = `card bg-zinc-900 rounded-3xl overflow-hidden cursor-pointer active:scale-95 ${isSelected ? 'ring-2 ring-rose-500' : ''}`;
+      div.innerHTML = `
+        <div class="h-40 flex items-center justify-center bg-gradient-to-br from-purple-900 to-rose-900 text-7xl">${item.emoji}</div>
+        <div class="p-5">
+          <h3 class="font-semibold text-lg">${item.title}</h3>
+          <p class="text-zinc-400 text-sm">${item.desc} • ${item.time}</p>
+          <button onclick="addToPlan(${item.id}); event.stopImmediatePropagation()" 
+                  class="mt-4 w-full ${isSelected ? 'bg-rose-900 text-rose-200' : 'bg-rose-600 hover:bg-rose-500'} py-3 rounded-2xl text-sm font-medium">
+                  ${isSelected ? '✓ Added' : 'Add to Plan'}
+          </button>
+        </div>
+      `;
+      return div;
+    }
+
+    function renderSuggestions() {
+      const container = document.getElementById('suggestions-grid');
+      container.innerHTML = '';
+      suggestions.forEach(item => {
+        container.appendChild(createSuggestionCard(item));
+      });
+    }
+
+    function addToPlan(id) {
+      if (!currentPlan.includes(id)) {
+        currentPlan.push(id);
+        confetti({ particleCount: 100, spread: 70 });
+      } else {
+        currentPlan = currentPlan.filter(item => item !== id);
+      }
+      renderSuggestions();
+    }
+
+    function surpriseMe() {
+      confetti({ particleCount: 150 });
+      alert("AI found a new perfect idea for you two ✨");
+    }
+
+    function toggleDarkMode() {
+      alert("Theme switched (in real app this would toggle light/dark)");
+    }
+
+    // Leaflet Map
+    function initMap() {
+      const map = L.map('map').setView([40.71, -74.00], 15);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+      L.marker([40.71, -74.00]).addTo(map).bindPopup("Riverfront Sushi").openPopup();
+    }
+
+    // Init
+    window.onload = () => {
+      loadSharedPlan();
+      renderSuggestions();
+      initMap();
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      document.getElementById('date-picker').value = tomorrow.toISOString().split('T')[0];
+      
+      switchScreen(0);
+    };
+  </script>
+</body>
+</html>
